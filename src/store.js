@@ -49,6 +49,14 @@ export function removeHistory(id) {
   writeHistory(readHistory().filter((e) => e.id !== id));
 }
 
+export function clearHistory() {
+  writeHistory([]);
+}
+
+export function clearWatchLater() {
+  writeAtomic(laterFile, "[]\n");
+}
+
 /** [{ id, title, type, sub, dub, eps, addedAt }] newest first. */
 export function readWatchLater() {
   try {

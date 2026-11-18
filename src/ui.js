@@ -1,19 +1,30 @@
 // Interactive terminal UI. Written with htm instead of JSX so it runs without a build step.
-import React, { useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
 import htm from "htm";
 import { search, episodes as fetchEpisodes, sources, pickQuality } from "./provider.js";
-import { readHistory, recordWatched, removeHistory, readWatchLater, toggleWatchLater, isInWatchLater } from "./store.js";
-import { play } from "./player.js";
+import {
+  readHistory,
+  recordWatched,
+  removeHistory,
+  clearHistory,
+  readWatchLater,
+  toggleWatchLater,
+  clearWatchLater,
+  isInWatchLater,
+} from "./store.js";
+import { play, resolvePlayer, isInstalled } from "./player.js";
+import { SETTINGS, loadSettings, saveSettings } from "./settings.js";
 
 const html = htm.bind(React.createElement);
-const ACCENT = "#d97757";
+const Accent = createContext("#d97757"); // set from the accent color setting
 const TABS = [
   { key: "search", label: "Search" },
   { key: "history", label: "History" },
   { key: "later", label: "Watch later" },
+  { key: "settings", label: "Settings" },
 ];
 
 // ---------- small building blocks ----------
@@ -31,6 +42,7 @@ function useTerminalSize() {
 
 /** Vertical list that scrolls to keep the selected row visible. */
 function List({ items, selected, height, render, active = true, empty }) {
+  const ACCENT = useContext(Accent);
   if (!items.length) return html`<${Box} height=${height} width="100%"><${Text} dimColor>${empty}<//><//>`;
   const h = Math.max(1, height);
   let start = Math.min(Math.max(0, selected - Math.floor(h / 2)), Math.max(0, items.length - h));
@@ -50,6 +62,7 @@ function List({ items, selected, height, render, active = true, empty }) {
 }
 
 function Header({ tab, mode, inSubview }) {
+  const ACCENT = useContext(Accent);
   return html`
     <${Box} paddingX=${1} justifyContent="space-between">
       <${Box} gap=${2}>
@@ -72,6 +85,7 @@ function Footer({ hints, message }) {
 }
 
 function Details({ show, history, width }) {
+  const ACCENT = useContext(Accent);
   if (!show) return null;
   const watched = history.find((h) => h.id === show.id);
   const later = isInWatchLater(show.id);
@@ -94,14 +108,92 @@ function Details({ show, history, width }) {
     <//>`;
 }
 
+/** Text shown for a setting's current value. */
+function settingValue(s, value) {
+  if (s.type === "toggle") return value ? "on" : "off";
+  if (s.type === "text") return value || "(none)";
+  if (s.labels) return s.labels[value] ?? value;
+  return value;
+}
+
+function SettingsView({ settings, overrides, sel, editing, editText, setEditText, confirm, counts, height }) {
+  const ACCENT = useContext(Accent);
+  const current = SETTINGS[sel];
+  const rows = [];
+  let section = null;
+  SETTINGS.forEach((s, i) => {
+    if (s.section !== section) {
+      section = s.section;
+      rows.push(html`<${Box} key=${`h-${section}`} marginTop=${rows.length ? 1 : 0}><${Text} bold dimColor>${section.toUpperCase()}<//><//>`);
+    }
+    const isSel = i === sel;
+    const override = overrides[s.key];
+    const value = override ? override.value : settings[s.key];
+    let valueEl;
+    if (s.type === "action") {
+      const n = s.key === "clearHistory" ? counts.history : counts.later;
+      valueEl =
+        confirm === s.key
+          ? html`<${Text} color="red" bold>Press enter again to confirm<//>`
+          : html`<${Text} dimColor>${n} ${n === 1 ? "show" : "shows"}<//>`;
+    } else if (isSel && editing) {
+      valueEl = html`<${Box}><${Text} color=${ACCENT}>${"> "}<//><${TextInput} value=${editText} onChange=${setEditText} placeholder=${s.placeholder} /><//>`;
+    } else if (s.type === "toggle") {
+      valueEl = html`<${Text} color=${value ? "green" : undefined} dimColor=${!value}>${value ? "● on" : "○ off"}<//>`;
+    } else if (s.type === "choice") {
+      let extra = "";
+      if (s.key === "player") {
+        extra = value === "auto" ? ` → ${resolvePlayer("auto") ?? "none found"}` : isInstalled(value) ? "" : "  (not installed)";
+      }
+      valueEl = html`
+        <${Text}>
+          ${isSel ? html`<${Text} color=${ACCENT}>‹ <//>` : "  "}
+          ${s.key === "accent" ? html`<${Text} color=${value}>■ <//>` : null}${settingValue(s, value)}
+          ${isSel ? html`<${Text} color=${ACCENT}> ›<//>` : "  "}
+          <${Text} dimColor>${extra}<//>
+        <//>`;
+    } else {
+      valueEl = html`<${Text} dimColor=${!value}>${settingValue(s, value)}<//>`;
+    }
+    rows.push(html`
+      <${Box} key=${s.key}>
+        <${Text} color=${ACCENT}>${isSel ? "❯ " : "  "}<//>
+        <${Box} width=${22}><${Text} bold=${isSel}>${s.label}<//><//>
+        <${Box} flexGrow=${1}>${valueEl}<//>
+        ${override ? html`<${Text} color="yellow">set by ${override.from}<//>` : null}
+      <//>`);
+  });
+  return html`
+    <${Box} flexDirection="column" paddingX=${1} height=${height} width="100%">
+      <${Box} flexDirection="column" flexGrow=${1}>${rows}<//>
+      <${Box} borderStyle="round" borderColor="gray" paddingX=${1} width="100%" flexDirection="column">
+        <${Text} wrap="wrap">${current.help}<//>
+        ${overrides[current.key]
+          ? html`<${Text} color="yellow" wrap="wrap">${overrides[current.key].from} overrides this for the current session. Changing it here saves your choice and replaces that override.<//>`
+          : null}
+      <//>
+    <//>`;
+}
+
 // ---------- main app ----------
 
-export default function App({ initialQuery = "", initialMode = "sub", quality: initialQuality = "best", player }) {
+export default function App({ initialQuery = "", overrides: initialOverrides = {} }) {
   const { exit } = useApp();
   const { cols, rows } = useTerminalSize();
 
+  // saved settings, plus session overrides from flags / environment variables
+  const [settings, setSettings] = useState(() => loadSettings());
+  const [overrides, setOverrides] = useState(initialOverrides);
+  const effective = { ...settings, ...Object.fromEntries(Object.entries(overrides).map(([k, o]) => [k, o.value])) };
+  const ACCENT = effective.accent;
+  const player = resolvePlayer(effective.player);
+  const [settingSel, setSettingSel] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null);
+
   const [tab, setTab] = useState("search");
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState(effective.mode);
   const [message, setMessage] = useState(null);
   const [history, setHistory] = useState(() => readHistory().reverse());
   const [later, setLater] = useState(() => readWatchLater());
@@ -196,19 +288,23 @@ export default function App({ initialQuery = "", initialMode = "sub", quality: i
   async function startEpisode(show, eps, index, q) {
     const token = ++playToken.current;
     const ep = eps[index];
-    const wantQuality = q ?? now?.quality ?? initialQuality;
+    const wantQuality = q ?? (now?.show.id === show.id ? now.quality : effective.quality);
     setNow({ show, eps, index, quality: wantQuality, loading: true, error: null, src: null, link: null, picking: false });
     setView({ name: "playing" });
     try {
       const src = await sources(ep.id, mode);
       if (token !== playToken.current) return;
       const link = pickQuality(src.links, wantQuality);
-      await play(player, {
-        url: link.url,
-        referer: src.referer,
-        subtitle: src.subtitle,
-        title: `${show.title} Episode ${ep.number}`,
-      });
+      await play(
+        player,
+        {
+          url: link.url,
+          referer: src.referer,
+          subtitle: effective.subtitles ? src.subtitle : "",
+          title: `${show.title} Episode ${ep.number}`,
+        },
+        effective.playerFlags,
+      );
       recordWatched(show.id, show.title, ep.number);
       refreshLists();
       setNow((n) => n && { ...n, loading: false, src, link });
@@ -241,7 +337,69 @@ export default function App({ initialQuery = "", initialMode = "sub", quality: i
     const i = TABS.findIndex((t) => t.key === tab);
     setTab(TABS[(i + dir + TABS.length) % TABS.length].key);
     setConfirmDelete(null);
+    setConfirmAction(null);
   };
+
+  /** Save a setting, drop any session override for it, and apply it right away. */
+  function changeSetting(key, value) {
+    const next = { ...settings, [key]: value };
+    try {
+      saveSettings(next);
+    } catch (err) {
+      flash(`Could not save settings: ${err.message}`, true);
+    }
+    setSettings(next);
+    if (overrides[key]) {
+      const { [key]: _, ...rest } = overrides;
+      setOverrides(rest);
+    }
+    if (key === "mode") setMode(value);
+  }
+
+  function handleSettingsInput(input, key) {
+    const s = SETTINGS[settingSel];
+    const value = overrides[s.key] ? overrides[s.key].value : settings[s.key];
+
+    if (editing) {
+      if (key.return) {
+        changeSetting(s.key, editText.trim());
+        setEditing(false);
+        flash(`${s.label} saved`);
+      } else if (key.escape) setEditing(false);
+      return; // other keys go to the text input
+    }
+    if (key.tab) return cycleTab(key.shift ? -1 : 1);
+    if (key.upArrow || key.downArrow) {
+      setSettingSel(move(settingSel, key.upArrow ? -1 : 1, SETTINGS.length));
+      setConfirmAction(null);
+      return;
+    }
+    if (input === "q" || key.escape) {
+      if (confirmAction) return setConfirmAction(null);
+      return exit();
+    }
+
+    if (s.type === "choice" && (key.leftArrow || key.rightArrow || key.return || input === " ")) {
+      const i = s.options.indexOf(value);
+      const dir = key.leftArrow ? -1 : 1;
+      // a value from an override may not be in the list; start from the first option then
+      const next = s.options[i < 0 ? 0 : (i + dir + s.options.length) % s.options.length];
+      changeSetting(s.key, next);
+    } else if (s.type === "toggle" && (key.leftArrow || key.rightArrow || key.return || input === " ")) {
+      changeSetting(s.key, !value);
+    } else if (s.type === "text" && key.return) {
+      setEditText(value);
+      setEditing(true);
+    } else if (s.type === "action" && key.return) {
+      if (confirmAction !== s.key) return setConfirmAction(s.key);
+      if (s.key === "clearHistory") clearHistory();
+      else clearWatchLater();
+      setConfirmAction(null);
+      setListSel({ history: 0, later: 0 });
+      refreshLists();
+      flash(s.key === "clearHistory" ? "History cleared" : "Watch later cleared");
+    }
+  }
 
   const move = (sel, delta, len) => Math.max(0, Math.min(len - 1, sel + delta));
 
@@ -302,6 +460,7 @@ export default function App({ initialQuery = "", initialMode = "sub", quality: i
     }
 
     // ----- tabs -----
+    if (tab === "settings") return handleSettingsInput(input, key);
     if (key.tab) return cycleTab(key.shift ? -1 : 1);
 
     if (tab === "search") {
@@ -441,6 +600,19 @@ export default function App({ initialQuery = "", initialMode = "sub", quality: i
           ${wide && show ? html`<${Details} show=${show} history=${history} width=${detailsWidth} />` : null}
         <//>
       <//>`;
+  } else if (tab === "settings") {
+    const s = SETTINGS[settingSel];
+    hints = editing
+      ? ["type a value", "enter save", "esc cancel"]
+      : [
+          "↑↓ move",
+          s.type === "choice" ? "←→ change" : s.type === "toggle" ? "space toggle" : s.type === "text" ? "enter edit" : "enter run",
+          "tab switch tab",
+          "q quit",
+        ];
+    body = html`<${SettingsView} settings=${settings} overrides=${overrides} sel=${settingSel} editing=${editing}
+      editText=${editText} setEditText=${setEditText} confirm=${confirmAction}
+      counts=${{ history: history.length, later: later.length }} height=${bodyHeight} />`;
   } else {
     const isHistory = tab === "history";
     const list = isHistory ? history : later;
@@ -463,9 +635,11 @@ export default function App({ initialQuery = "", initialMode = "sub", quality: i
   }
 
   return html`
-    <${Box} flexDirection="column" height=${rows} width=${cols}>
-      <${Header} tab=${tab} mode=${mode} inSubview=${!!view} />
-      <${Box} marginTop=${1} flexGrow=${1} width="100%">${body}<//>
-      <${Footer} hints=${hints} message=${message} />
+    <${Accent.Provider} value=${ACCENT}>
+      <${Box} flexDirection="column" height=${rows} width=${cols}>
+        <${Header} tab=${tab} mode=${mode} inSubview=${!!view} />
+        <${Box} marginTop=${1} flexGrow=${1} width="100%">${body}<//>
+        <${Footer} hints=${hints} message=${message} />
+      <//>
     <//>`;
 }

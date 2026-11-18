@@ -115,3 +115,24 @@ the new domain. `ANI_CLI_BASE` overrides the domain. Requests time out after 20 
 **Consequences:** One slow lookup per session instead of two per request. The 5 s DNS
 delay itself is a system setting (glibc sending IPv4 and IPv6 lookups together), not
 something the app fixes.
+
+## 007. Settings tab with a saved config file
+
+- **Date:** 2026-11-18
+- **Status:** Accepted
+
+**Context:** ani-cli is configured only through `ANI_CLI_*` environment variables and
+flags, which have to be set before every run and can't be changed while it's open.
+
+**Decision:** Add a Settings tab to `ani-tui` covering audio (sub/dub), quality, subtitle
+file on/off, player, extra player options, accent color, and clearing history or watch
+later. Changes apply immediately and are saved to
+`$XDG_CONFIG_HOME/ani-cli/ani-tui.json` (usually `~/.config/ani-cli/`). For a single
+session, flags beat environment variables, which beat the file. The tab labels any
+setting that is being overridden, and changing it there saves the choice and drops the
+override.
+
+**Consequences:** Existing `ANI_CLI_*` habits keep working. Clearing history also clears
+`./ani-cli`'s history, because they share the file (decision 005); the tab says so before
+asking for confirmation. `s` still switches sub/dub for the current session only, without
+saving.

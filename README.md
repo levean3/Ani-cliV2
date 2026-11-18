@@ -21,12 +21,18 @@ npm install
 - **Now playing**: next, previous, replay, and change quality without leaving the app.
 - **History**: shared with `./ani-cli`, so both see the same progress.
 - **Watch later**: press `w` on any show to save it for later.
+- **Settings**: default sub/dub, quality, subtitle file on/off, player, extra player
+  options, accent color, and clearing history or watch later. Saved to
+  `~/.config/ani-cli/ani-tui.json`. `--dub`, `-q` and the `ANI_CLI_MODE`,
+  `ANI_CLI_QUALITY`, `ANI_CLI_PLAYER`, `ANI_CLI_PLAYER_FLAGS` variables override them for
+  one session, and the tab marks which ones are overridden.
 
 | Key | Action |
 | --- | --- |
 | `↑` `↓` | Move (`↓` from the search box enters the results) |
 | `Enter` | Open show / play episode |
-| `Tab` / `Shift+Tab` | Switch between Search, History, Watch later |
+| `Tab` / `Shift+Tab` | Switch between Search, History, Watch later, Settings |
+| `←` `→` / `Space` | Change a setting (`Enter` edits text, runs actions after a second press) |
 | `w` | Add to / remove from watch later |
 | `s` | Toggle sub / dub |
 | `d` `d` | Remove from history or watch later |
