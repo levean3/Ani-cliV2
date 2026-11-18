@@ -156,3 +156,36 @@ player with `windowsHide` so no empty console window appears. Friends install wi
 detection, the UI and the global `ani-tui` command all work. The `./ani-cli` shell
 script still needs Git Bash or WSL on Windows. npm's PowerShell shim can be blocked by
 the default execution policy; the README gives the workaround.
+
+## 009. Double-click installers for Windows and WSL Ubuntu
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** Friends who aren't comfortable with terminals want to try `ani-tui`. The
+manual steps (install Node.js and mpv, clone, `npm install -g .`) are too much for them.
+
+**Decision:** Add two installers at the top of the repo that are started by
+double-clicking:
+
+- `Install on Windows.cmd` runs `installers/install-windows.ps1`. It installs Node.js LTS
+  (`OpenJS.NodeJS.LTS`) and mpv (`shinchiro.mpv`) with winget when missing, copies the
+  app to `%LOCALAPPDATA%\ani-tui`, adds an `ani-tui` command to the user PATH, and adds
+  Desktop and Start menu shortcuts.
+- `Install in WSL Ubuntu.cmd` checks for the Ubuntu distro (offering `wsl --install -d
+  Ubuntu` if missing) and runs `installers/install-ubuntu.sh` inside it. That installs
+  Node.js from apt, or the official nodejs.org build (checksum verified) when apt's is
+  older than 18. It uses Windows' `mpv.exe` when it can see it, otherwise installs mpv
+  from apt. The app goes to `~/.local/share/ani-tui`, with a launcher in `~/.local/bin`.
+
+Both copy the app instead of running it from the download, so the download can be
+deleted, and running the installer again updates it. `.gitattributes` makes sure
+`.cmd`/`.ps1` files get CRLF and `.sh` files LF, including in GitHub's ZIP download.
+mpv's installer may not add mpv to PATH, so `src/player.js` also checks mpv's usual
+install folders on Windows.
+
+**Consequences:** The Ubuntu installer was tested in a throwaway home folder with
+`sudo` stubbed, with both a current and a too-old Node.js. The Windows installer was
+only syntax-checked: running it installs software and changes PATH. There is no
+uninstaller yet. Running the Ubuntu installer replaces a developer's
+`~/.local/bin/ani-tui` symlink with a launcher pointing to the installed copy.

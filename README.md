@@ -4,6 +4,22 @@ A personal fork of [ani-cli](https://github.com/pystardust/ani-cli), a shell scr
 
 Based on upstream ani-cli **v5.1.5**. All credit for the original work goes to the ani-cli authors and contributors.
 
+## Easy install
+
+1. On this page, click the green **Code** button, then **Download ZIP**.
+2. Open the downloaded file and click **Extract all**.
+3. In the extracted folder, double-click one of:
+   - **`Install on Windows.cmd`**: for normal Windows. Installs Node.js and the mpv video
+     player if needed, then adds an **ani-tui** shortcut to your Desktop and Start menu.
+   - **`Install in WSL Ubuntu.cmd`**: for WSL. Sets up Ubuntu if it's missing, then
+     installs everything inside it. Afterwards, type `ani-tui` in Ubuntu.
+
+If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
+Windows may also ask for permission to install Node.js or mpv; click **Yes**.
+
+To update, download the newest ZIP and run the installer again. You can delete the
+downloaded folder after installing.
+
 ## Interactive UI (`ani-tui`)
 
 A full-screen terminal interface built with [Ink](https://github.com/vadimdemedes/ink), the
@@ -40,12 +56,14 @@ npm install
 | `Esc` | Back |
 | `Ctrl+C` | Quit |
 
-### Install on Windows (no WSL needed)
+### Manual install on Windows (no WSL needed)
+
+The installer above does this for you.
 
 1. Install [Node.js LTS](https://nodejs.org) and mpv. With winget:
    ```
-   winget install OpenJS.NodeJS.LTS
-   winget install mpv
+   winget install --id OpenJS.NodeJS.LTS --exact
+   winget install --id shinchiro.mpv --exact
    ```
    VLC works too; it's found in its normal install folder even if it isn't on PATH.
 2. Open a new terminal (so it sees Node), then:

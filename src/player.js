@@ -6,10 +6,20 @@ import path from "node:path";
 
 const isWindows = process.platform === "win32";
 
-// VLC's installer doesn't add it to PATH on Windows, so also look in the usual install folders
-const WINDOWS_VLC = [process.env.ProgramFiles, process.env["ProgramFiles(x86)"]]
+// Windows installers for VLC and some mpv builds don't add them to PATH, so also look in the
+// usual install folders
+const { ProgramFiles, LOCALAPPDATA, USERPROFILE } = process.env;
+const WINDOWS_VLC = [ProgramFiles, process.env["ProgramFiles(x86)"]]
   .filter(Boolean)
   .map((dir) => path.join(dir, "VideoLAN", "VLC", "vlc.exe"));
+const WINDOWS_MPV = [
+  ProgramFiles && path.join(ProgramFiles, "mpv"),
+  ProgramFiles && path.join(ProgramFiles, "MPV Player"),
+  LOCALAPPDATA && path.join(LOCALAPPDATA, "Programs", "mpv"),
+  USERPROFILE && path.join(USERPROFILE, "scoop", "apps", "mpv", "current"),
+]
+  .filter(Boolean)
+  .map((dir) => path.join(dir, "mpv.exe"));
 
 const found = new Map();
 /** True if `cmd` is an existing file path or a command on PATH. */
@@ -27,15 +37,18 @@ export function isInstalled(cmd) {
 /** Resolve a player setting ("auto" or a command name) to the command to run, or null. */
 export function resolvePlayer(setting = "auto") {
   if (setting && setting !== "auto") {
-    // on Windows "vlc" usually isn't on PATH; fall back to the installed copy
-    if (isWindows && /^vlc(\.exe)?$/.test(setting) && !isInstalled(setting)) {
-      return WINDOWS_VLC.find(isInstalled) ?? setting;
+    // on Windows the player may not be on PATH; fall back to the installed copy
+    if (isWindows && !isInstalled(setting)) {
+      if (/^vlc(\.exe)?$/.test(setting)) return WINDOWS_VLC.find(isInstalled) ?? setting;
+      if (/^mpv(\.exe)?$/.test(setting)) return WINDOWS_MPV.find(isInstalled) ?? setting;
     }
     return setting;
   }
   if (isWindows) {
     // name the .exe explicitly: a bare "mpv" can start mpv.com, the console wrapper, instead
     if (isInstalled("mpv.exe")) return "mpv.exe";
+    const mpv = WINDOWS_MPV.find(isInstalled);
+    if (mpv) return mpv;
     if (isInstalled("vlc.exe")) return "vlc.exe";
     return WINDOWS_VLC.find(isInstalled) ?? null;
   }
