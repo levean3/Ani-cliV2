@@ -6,9 +6,9 @@ Based on upstream ani-cli **v5.1.5**. All credit for the original work goes to t
 
 ## Usage
 
-\\\sh
+```sh
 ./ani-cli
-\\\
+```
 
 ## License
 
