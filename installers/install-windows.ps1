@@ -10,6 +10,9 @@ $Source = Split-Path -Parent $PSScriptRoot
 $InstallDir = Join-Path $env:LOCALAPPDATA 'ani-tui'
 $AppDir = Join-Path $InstallDir 'app'
 $BinDir = Join-Path $InstallDir 'bin'
+# winget packages this installer added, so the uninstaller only offers to remove those
+$RecordFile = Join-Path $InstallDir 'installed-by-ani-tui.txt'
+$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\ani-tui'
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok($msg) { Write-Host "    $msg" -ForegroundColor Green }
@@ -32,6 +35,12 @@ function Winget-Install($id, $name) {
     & winget install --id $id --exact --silent --accept-package-agreements --accept-source-agreements
     # winget returns non-zero when the package is already installed; the caller checks for the program instead
     Refresh-Path
+}
+function Record($id) {
+    New-Item -ItemType Directory -Force $InstallDir | Out-Null
+    $ids = @()
+    if (Test-Path $RecordFile) { $ids = @(Get-Content $RecordFile) }
+    @($ids + $id) | Sort-Object -Unique | Set-Content -Path $RecordFile -Encoding ASCII
 }
 function Find-Node {
     $cmd = Get-Command node.exe -ErrorAction SilentlyContinue
@@ -78,6 +87,7 @@ try {
         Winget-Install 'OpenJS.NodeJS.LTS' 'Node.js'
         $node = Find-Node
         if (-not $node) { Fail 'Node.js could not be installed. Restart your PC and run this installer again.' }
+        Record 'OpenJS.NodeJS.LTS'
     }
     $nodeDir = Split-Path -Parent $node
     $env:Path = "$nodeDir;$env:Path"
@@ -89,6 +99,7 @@ try {
     if (-not $mpv) {
         Winget-Install 'shinchiro.mpv' 'mpv'
         $mpv = Find-Mpv
+        if ($mpv) { Record 'shinchiro.mpv' }
     }
     if ($mpv) {
         Ok "mpv found: $mpv"
@@ -136,11 +147,34 @@ try {
         $lnk.Description = 'Search and watch anime'
         $lnk.Save()
     }
+    $uninstaller = Join-Path $AppDir 'Uninstall from Windows.cmd'
+    $lnk = $shell.CreateShortcut((Join-Path $startMenu 'Uninstall ani-tui.lnk'))
+    $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
+    $lnk.Arguments = "/c `"$uninstaller`""
+    $lnk.WorkingDirectory = $env:USERPROFILE
+    $lnk.Description = 'Remove ani-tui from this PC'
+    $lnk.Save()
     Ok 'Shortcuts added to your Desktop and Start menu'
+
+    # list it in Settings > Apps so it can be removed like any other program
+    $version = (Get-Content (Join-Path $AppDir 'package.json') -Raw | ConvertFrom-Json).version
+    New-Item -Path $UninstallKey -Force | Out-Null
+    $entries = @{
+        DisplayName     = 'ani-tui'
+        DisplayVersion  = $version
+        Publisher       = 'Ani-cliV2'
+        InstallLocation = $InstallDir
+        UninstallString = "`"$env:SystemRoot\System32\cmd.exe`" /c `"$uninstaller`""
+    }
+    foreach ($k in $entries.Keys) { Set-ItemProperty -Path $UninstallKey -Name $k -Value $entries[$k] }
+    Set-ItemProperty -Path $UninstallKey -Name NoModify -Value 1 -Type DWord
+    Set-ItemProperty -Path $UninstallKey -Name NoRepair -Value 1 -Type DWord
+    Ok 'Listed in Settings > Apps'
 
     Write-Host "`nDone! Open ani-tui from the shortcut on your Desktop or in the Start menu." -ForegroundColor Green
     Write-Host 'Tip: make the window bigger (or maximize it) for the best view.'
     Write-Host 'To update later, download the newest version and run this installer again.'
+    Write-Host 'To remove it, use "Uninstall ani-tui" in the Start menu, or Settings > Apps.'
     Finish 0
 } catch {
     Fail "Something went wrong: $($_.Exception.Message)"

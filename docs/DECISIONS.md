@@ -189,3 +189,29 @@ install folders on Windows.
 only syntax-checked: running it installs software and changes PATH. There is no
 uninstaller yet. Running the Ubuntu installer replaces a developer's
 `~/.local/bin/ani-tui` symlink with a launcher pointing to the installed copy.
+
+## 010. Uninstallers that only remove what ani-tui added
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** Friends need a simple way to remove ani-tui (decision 009 had no
+uninstaller). Removing Node.js or mpv blindly could break other programs that use them.
+
+**Decision:** The installers now record the packages they installed themselves
+(`installed-by-ani-tui.txt` in the install folder: winget IDs on Windows, apt packages on
+Ubuntu). The uninstallers remove the app, the `ani-tui` command and the installer's PATH
+changes. They ask before deleting history, watch later and settings (default: keep), and
+only offer to remove recorded packages, one question each (default: keep).
+
+- Windows: `Uninstall from Windows.cmd` (`installers/uninstall-windows.ps1`). The
+  installer also adds an "Uninstall ani-tui" Start menu shortcut and an entry in
+  Settings > Apps, since the downloaded folder may be gone by then.
+- Ubuntu: `Uninstall from WSL Ubuntu.cmd` (`installers/uninstall-ubuntu.sh`), also
+  runnable from the installed copy. It only deletes `~/.local/bin/ani-tui` if it's the
+  launcher the installer wrote, so a developer's symlink to a working copy is left alone.
+
+**Consequences:** Programs installed before decision 010 aren't recorded, so the
+uninstaller won't offer to remove them; friends can remove them in Settings > Apps. The
+Ubuntu uninstaller was tested end to end in a throwaway home folder with `sudo` stubbed.
+The Windows one was only syntax-checked, like the Windows installer.

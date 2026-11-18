@@ -17,6 +17,14 @@ note() { printf '    \033[33m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$*"; exit 1; }
 trap 'fail "Something went wrong on line $LINENO. Check your internet connection and run the installer again."' ERR
 
+# apt packages this installer added, so the uninstaller only offers to remove those
+RECORD="$DATA/installed-by-ani-tui.txt"
+record() {
+  mkdir -p "$DATA"
+  printf '%s\n' "$@" >>"$RECORD"
+  sort -u -o "$RECORD" "$RECORD"
+}
+
 node_major() { "$1" --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || echo 0; }
 
 printf '\033[1;35mani-tui installer for Ubuntu\033[0m\n'
@@ -38,6 +46,7 @@ if command -v node >/dev/null && [ "$(node_major node)" -ge 18 ] && command -v n
 elif ! command -v node >/dev/null; then
   note "Installing Node.js from Ubuntu"
   sudo apt-get install -y -qq nodejs npm >/dev/null || true
+  if command -v node >/dev/null; then record nodejs npm; fi
   if command -v node >/dev/null && [ "$(node_major node)" -ge 18 ]; then NODE="$(command -v node)"; fi
 fi
 if [ -z "$NODE" ]; then
@@ -72,6 +81,7 @@ elif command -v mpv >/dev/null; then
 else
   note "Installing mpv (this is the biggest download)"
   sudo apt-get install -y -qq mpv >/dev/null
+  record mpv
   ok "mpv installed"
 fi
 
@@ -112,3 +122,4 @@ if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then
   echo "From Windows, you can also run it with: wsl -d Ubuntu -- bash -lc ani-tui"
 fi
 echo "To update later, download the newest version and run this installer again."
+echo "To remove it, run: bash ~/.local/share/ani-tui/app/installers/uninstall-ubuntu.sh"

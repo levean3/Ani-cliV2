@@ -20,6 +20,17 @@ Windows may also ask for permission to install Node.js or mpv; click **Yes**.
 To update, download the newest ZIP and run the installer again. You can delete the
 downloaded folder after installing.
 
+### Uninstall
+
+- **Windows:** open the Start menu and click **Uninstall ani-tui**, or remove **ani-tui**
+  in **Settings > Apps**, or double-click **`Uninstall from Windows.cmd`**.
+- **WSL Ubuntu:** double-click **`Uninstall from WSL Ubuntu.cmd`**, or run
+  `bash ~/.local/share/ani-tui/app/installers/uninstall-ubuntu.sh` in Ubuntu.
+
+The uninstaller asks before deleting your watch history, watch later list and settings
+(kept unless you say yes). It also offers to remove Node.js or mpv, but only if the
+installer installed them.
+
 ## Interactive UI (`ani-tui`)
 
 A full-screen terminal interface built with [Ink](https://github.com/vadimdemedes/ink), the
