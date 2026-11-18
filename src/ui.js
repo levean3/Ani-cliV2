@@ -143,7 +143,7 @@ function SettingsView({ settings, overrides, sel, editing, editText, setEditText
     } else if (s.type === "choice") {
       let extra = "";
       if (s.key === "player") {
-        extra = value === "auto" ? ` → ${resolvePlayer("auto") ?? "none found"}` : isInstalled(value) ? "" : "  (not installed)";
+        extra = value === "auto" ? ` → ${resolvePlayer("auto") ?? "none found"}` : isInstalled(resolvePlayer(value)) ? "" : "  (not installed)";
       }
       valueEl = html`
         <${Text}>

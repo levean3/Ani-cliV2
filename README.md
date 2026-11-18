@@ -40,6 +40,29 @@ npm install
 | `Esc` | Back |
 | `Ctrl+C` | Quit |
 
+### Install on Windows (no WSL needed)
+
+1. Install [Node.js LTS](https://nodejs.org) and mpv. With winget:
+   ```
+   winget install OpenJS.NodeJS.LTS
+   winget install mpv
+   ```
+   VLC works too; it's found in its normal install folder even if it isn't on PATH.
+2. Open a new terminal (so it sees Node), then:
+   ```
+   git clone https://github.com/levean3/Ani-cliV2.git
+   cd Ani-cliV2
+   npm install
+   npm install -g .
+   ```
+3. Run `ani-tui` from any folder. Windows Terminal is recommended.
+
+Keep the cloned folder: the `ani-tui` command points to it. To update, run `git pull` in it.
+
+If PowerShell says "running scripts is disabled on this system", either run
+`ani-tui.cmd` instead, or allow npm's scripts once with
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
 `npm run check -- <query>` runs a quick test of search, episodes and stream links against
 the live site.
 

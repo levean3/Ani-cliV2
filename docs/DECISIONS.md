@@ -136,3 +136,23 @@ override.
 `./ani-cli`'s history, because they share the file (decision 005); the tab says so before
 asking for confirmation. `s` still switches sub/dub for the current session only, without
 saving.
+
+## 008. Support Windows natively, without WSL
+
+- **Date:** 2026-11-18
+- **Status:** Accepted
+
+**Context:** Friends want to try `ani-tui` on Windows. Everything was already
+cross-platform Node code except player detection, which ran `sh -c "command -v …"`.
+Plain Windows has no `sh`, so no player was ever found.
+
+**Decision:** On Windows, look players up with `where`, prefer `mpv.exe` (a bare `mpv`
+can start `mpv.com`, the console wrapper), and also look for VLC in
+`Program Files\VideoLAN\VLC`, since its installer doesn't add it to PATH. Start the
+player with `windowsHide` so no empty console window appears. Friends install with
+`npm install -g .` from a clone; WSL is not required.
+
+**Consequences:** Tested on Windows 11 with a portable Node 22: the scraper, player
+detection, the UI and the global `ani-tui` command all work. The `./ani-cli` shell
+script still needs Git Bash or WSL on Windows. npm's PowerShell shim can be blocked by
+the default execution policy; the README gives the workaround.
