@@ -255,3 +255,23 @@ which on Windows gives it no console, so no empty console window appears.
 
 **Consequences:** The player window shows normally. Only `where` lookups still use
 `windowsHide`, which is correct for those console commands.
+
+## 013. Uninstall shortcuts run PowerShell directly
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** Testing the Windows uninstaller on the maintainer's PC: it removed the app,
+shortcuts, Settings > Apps entry and PATH entry correctly, kept the PATH's format and
+other entries, and respected "no" for personal data and for Node.js. But the Start menu
+shortcut and Settings > Apps ran `Uninstall from Windows.cmd` from inside the folder
+being deleted, so `cmd` ended with "The system cannot find the path specified" and exit
+code 1. Settings > Apps could report that as a failed uninstall.
+
+**Decision:** Those two entries run `powershell.exe -File …\uninstall-windows.ps1`
+directly. PowerShell reads the whole script before running it, so deleting its folder is
+fine. `Uninstall from Windows.cmd` stays for the downloaded folder, which isn't deleted.
+
+**Consequences:** Uninstalling from Settings > Apps now exits cleanly with code 0. The
+list of programs the installer added is deleted with the app, so after an uninstall that
+keeps Node.js, a reinstall treats Node.js as the user's own and won't offer to remove it.
