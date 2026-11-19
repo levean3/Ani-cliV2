@@ -215,3 +215,26 @@ only offer to remove recorded packages, one question each (default: keep).
 uninstaller won't offer to remove them; friends can remove them in Settings > Apps. The
 Ubuntu uninstaller was tested end to end in a throwaway home folder with `sudo` stubbed.
 The Windows one was only syntax-checked, like the Windows installer.
+
+## 011. Edit the Windows user PATH in the registry directly
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** The first real run of the Windows installer (on the maintainer's Windows 11
+PC) worked: Node.js 26 was installed with winget, the existing mpv was found and left
+alone, and the command, shortcuts and Settings > Apps entry were created. But the
+installer changed PATH through `[Environment]::SetEnvironmentVariable`, which saves it
+as a plain string with variables expanded. Windows' default user PATH has
+`%USERPROFILE%\...` entries, which would become fixed paths. The uninstaller also dropped
+empty entries from PATH.
+
+**Decision:** Both Windows scripts read and write `HKCU\Environment\Path` directly,
+keeping its registry type and any `%VARIABLE%` entries, and then notify Windows of the
+change. The uninstaller removes only its own entry.
+
+**Consequences:** Re-running the installer (as an update) left PATH byte-for-byte the
+same. On the test PC the PATH's original type couldn't be confirmed, since the Node.js
+installer had rewritten it in the same run; all its entries were already full paths, so
+nothing was affected. Still untested on Windows: playing a real episode, and the
+uninstaller.
