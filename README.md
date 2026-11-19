@@ -1,8 +1,11 @@
-# Ani-cliV2
+# Ani-tui
 
-A personal fork of [ani-cli](https://github.com/pystardust/ani-cli), a shell script for browsing and watching anime from the command line.
+An interactive terminal app for searching and watching anime, with live search, episode
+lists, watch history, a watch later list and settings.
 
-Based on upstream ani-cli **v5.1.5**. All credit for the original work goes to the ani-cli authors and contributors.
+Ani-tui grew out of a fork of [ani-cli](https://github.com/pystardust/ani-cli) **v5.1.5**,
+whose scraping logic it is ported from. The original `ani-cli` script is still included
+unchanged. All credit for the original work goes to the ani-cli authors and contributors.
 
 ## Easy install
 
@@ -79,8 +82,8 @@ The installer above does this for you.
    VLC works too; it's found in its normal install folder even if it isn't on PATH.
 2. Open a new terminal (so it sees Node), then:
    ```
-   git clone https://github.com/levean3/Ani-cliV2.git
-   cd Ani-cliV2
+   git clone https://github.com/levean3/Ani-tui.git
+   cd Ani-tui
    npm install
    npm install -g .
    ```

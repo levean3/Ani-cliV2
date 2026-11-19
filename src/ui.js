@@ -66,7 +66,7 @@ function Header({ tab, mode, inSubview }) {
   return html`
     <${Box} paddingX=${1} justifyContent="space-between">
       <${Box} gap=${2}>
-        <${Text} bold color=${ACCENT}>✻ ani-cli v2<//>
+        <${Text} bold color=${ACCENT}>✻ ani-tui<//>
         ${TABS.map(
           (t) => html`<${Text} key=${t.key} bold=${t.key === tab} color=${t.key === tab && !inSubview ? ACCENT : undefined}
             dimColor=${t.key !== tab}>${t.key === tab ? `[${t.label}]` : t.label}<//>`,

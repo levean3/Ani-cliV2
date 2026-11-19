@@ -1,6 +1,6 @@
 # Decisions
 
-A log of decisions made on Ani-cliV2: what was decided, why, and what it affects.
+A log of decisions made on Ani-tui (called Ani-cliV2 until decision 015): what was decided, why, and what it affects.
 Newest entries go at the bottom. Entries are not edited after the fact; if a decision
 is reversed, add a new entry that supersedes the old one.
 
@@ -293,3 +293,21 @@ the Settings > Apps icon.
 **Consequences:** No 256 px version exists, so Windows' largest icon views upscale the
 128 px image slightly. The image is fan art of a character from someone else's series,
 now redistributed in a public repo; replace it if anyone asks.
+
+## 015. Rename the project from Ani-cliV2 to Ani-tui
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** The project started as a copy of ani-cli (decision 001) but is now its own
+app: a Node.js terminal UI with installers, and the original script is no longer what
+people run.
+
+**Decision:** Call the project Ani-tui, matching the `ani-tui` command. The GitHub repo
+becomes `levean3/Ani-tui`, the npm package `ani-tui`, the app header "ani-tui", and
+the local folders `~/ani-tui` (WSL) and `D:\Projects\Ani-tui` (Windows). The README
+still credits ani-cli, and the original `ani-cli` script stays in the repo unchanged.
+
+**Consequences:** GitHub redirects the old repo URL, so links already shared keep working.
+Install locations were already named `ani-tui` and don't change. Earlier entries in this
+log still say Ani-cliV2, since entries aren't rewritten.

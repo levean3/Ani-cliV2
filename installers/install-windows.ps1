@@ -183,7 +183,7 @@ try {
     $entries = @{
         DisplayName     = 'ani-tui'
         DisplayVersion  = $version
-        Publisher       = 'Ani-cliV2'
+        Publisher       = 'Ani-tui'
         InstallLocation = $InstallDir
         UninstallString = "`"$powershell`" $uninstallArgs"
     }

@@ -1,5 +1,5 @@
 {
-  "name": "ani-cliv2",
+  "name": "ani-tui",
   "version": "0.1.0",
   "description": "Interactive terminal UI for ani-cli, built with Ink",
   "license": "GPL-3.0-or-later",
