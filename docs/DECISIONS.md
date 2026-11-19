@@ -238,3 +238,20 @@ same. On the test PC the PATH's original type couldn't be confirmed, since the N
 installer had rewritten it in the same run; all its entries were already full paths, so
 nothing was affected. Still untested on Windows: playing a real episode, and the
 uninstaller.
+
+## 012. Don't start the player with windowsHide
+
+- **Date:** 2026-11-19
+- **Status:** Accepted (replaces the `windowsHide` part of decision 008)
+
+**Context:** On Windows, playing an episode gave sound but no video window: mpv was
+running, but hidden. Decision 008 started the player with Node's `windowsHide` option to
+avoid an empty console window. That option asks Windows to start the program hidden, and
+GUI programs like `mpv.exe` obey it. A side-by-side test confirmed it: with the option,
+mpv had no visible window; without it, the window appeared.
+
+**Decision:** Start the player without `windowsHide`. It is still started `detached`,
+which on Windows gives it no console, so no empty console window appears.
+
+**Consequences:** The player window shows normally. Only `where` lookups still use
+`windowsHide`, which is correct for those console commands.

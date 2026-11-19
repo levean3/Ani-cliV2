@@ -98,8 +98,9 @@ export function play(player, media, flags = "") {
   } else {
     args = [...extra, media.url];
   }
-  // windowsHide stops Windows from opening an empty console window next to the player
-  const child = spawn(player, args, { detached: true, stdio: "ignore", windowsHide: true });
+  // No windowsHide here: on Windows it also hides the window of GUI programs like mpv.exe,
+  // leaving only the sound. Being detached already keeps a console window from appearing.
+  const child = spawn(player, args, { detached: true, stdio: "ignore" });
   child.on("error", () => {}); // reported through the returned promise instead
   child.unref();
   return new Promise((resolve, reject) => {
