@@ -36,6 +36,20 @@ function Winget-Install($id, $name) {
     # winget returns non-zero when the package is already installed; the caller checks for the program instead
     Refresh-Path
 }
+# Edit the user PATH in the registry directly. [Environment]::SetEnvironmentVariable would
+# rewrite it as a plain string, expanding entries like %USERPROFILE%\... into fixed paths.
+function Get-UserPath {
+    $key = Get-Item 'HKCU:\Environment'
+    $kind = 'ExpandString'
+    if ($key.GetValueNames() -contains 'Path') { $kind = $key.GetValueKind('Path') }
+    return @{ Value = [string]$key.GetValue('Path', '', 'DoNotExpandEnvironmentNames'); Kind = $kind }
+}
+function Set-UserPath($value, $kind) {
+    Set-ItemProperty -Path 'HKCU:\Environment' -Name Path -Value $value -Type $kind
+    # setting any variable through .NET tells Explorer the environment changed, so new windows see it
+    [Environment]::SetEnvironmentVariable('ANI_TUI_REFRESH', '1', 'User')
+    [Environment]::SetEnvironmentVariable('ANI_TUI_REFRESH', $null, 'User')
+}
 function Record($id) {
     New-Item -ItemType Directory -Force $InstallDir | Out-Null
     $ids = @()
@@ -129,11 +143,12 @@ try {
     $script = Join-Path $AppDir 'bin\ani-tui.js'
     Set-Content -Path $launcher -Encoding ASCII -Value "@echo off`r`n`"$node`" `"$script`" %*"
 
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    if (-not $userPath) { $userPath = '' }
-    if (($userPath.Split(';') | Where-Object { $_ -eq $BinDir }).Count -eq 0) {
-        $newPath = (@($userPath.TrimEnd(';'), $BinDir) | Where-Object { $_ }) -join ';'
-        [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+    $userPath = Get-UserPath
+    $present = $userPath.Value.Split(';') |
+        Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -eq $BinDir }
+    if (-not $present) {
+        $newPath = (@($userPath.Value.TrimEnd(';'), $BinDir) | Where-Object { $_ }) -join ';'
+        Set-UserPath $newPath $userPath.Kind
     }
     Ok 'The ani-tui command works in new terminal windows'
 

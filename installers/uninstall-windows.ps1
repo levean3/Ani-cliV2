@@ -37,6 +37,19 @@ function Finish($code) {
     Read-Host 'Press Enter to close this window'
     exit $code
 }
+# Edit the user PATH in the registry directly, keeping its type and any %VARIABLE% entries
+# (see the same functions in install-windows.ps1).
+function Get-UserPath {
+    $key = Get-Item 'HKCU:\Environment'
+    $kind = 'ExpandString'
+    if ($key.GetValueNames() -contains 'Path') { $kind = $key.GetValueKind('Path') }
+    return @{ Value = [string]$key.GetValue('Path', '', 'DoNotExpandEnvironmentNames'); Kind = $kind }
+}
+function Set-UserPath($value, $kind) {
+    Set-ItemProperty -Path 'HKCU:\Environment' -Name Path -Value $value -Type $kind
+    [Environment]::SetEnvironmentVariable('ANI_TUI_REFRESH', '1', 'User')
+    [Environment]::SetEnvironmentVariable('ANI_TUI_REFRESH', $null, 'User')
+}
 function Remove-IfEmpty($dir) {
     if ((Test-Path $dir) -and -not (Get-ChildItem -Force $dir)) { Remove-Item -Force $dir }
 }
@@ -62,11 +75,11 @@ try {
     Ok 'Desktop, Start menu and Settings > Apps entries removed'
 
     Step 'Removing the ani-tui command'
-    $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-    if ($userPath) {
-        $kept = $userPath.Split(';') | Where-Object { $_ -and ($_.TrimEnd('\') -ne $BinDir) }
-        [Environment]::SetEnvironmentVariable('Path', ($kept -join ';'), 'User')
-    }
+    $userPath = Get-UserPath
+    $entries = $userPath.Value.Split(';')
+    # remove only our entry; keep everything else exactly as it was, empty entries included
+    $kept = @($entries | Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -ne $BinDir })
+    if ($kept.Count -ne $entries.Count) { Set-UserPath ($kept -join ';') $userPath.Kind }
     Ok 'Done'
 
     Step 'Removing app files'
