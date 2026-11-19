@@ -162,10 +162,14 @@ try {
         $lnk.Description = 'Search and watch anime'
         $lnk.Save()
     }
-    $uninstaller = Join-Path $AppDir 'Uninstall from Windows.cmd'
+    # Run the uninstall script with PowerShell directly, not through the .cmd file: the
+    # uninstaller deletes this folder, and cmd fails ("cannot find the path") when the
+    # batch file it's running disappears. PowerShell reads the whole script up front.
+    $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $uninstallArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$(Join-Path $AppDir 'installers\uninstall-windows.ps1')`""
     $lnk = $shell.CreateShortcut((Join-Path $startMenu 'Uninstall ani-tui.lnk'))
-    $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
-    $lnk.Arguments = "/c `"$uninstaller`""
+    $lnk.TargetPath = $powershell
+    $lnk.Arguments = $uninstallArgs
     $lnk.WorkingDirectory = $env:USERPROFILE
     $lnk.Description = 'Remove ani-tui from this PC'
     $lnk.Save()
@@ -179,7 +183,7 @@ try {
         DisplayVersion  = $version
         Publisher       = 'Ani-cliV2'
         InstallLocation = $InstallDir
-        UninstallString = "`"$env:SystemRoot\System32\cmd.exe`" /c `"$uninstaller`""
+        UninstallString = "`"$powershell`" $uninstallArgs"
     }
     foreach ($k in $entries.Keys) { Set-ItemProperty -Path $UninstallKey -Name $k -Value $entries[$k] }
     Set-ItemProperty -Path $UninstallKey -Name NoModify -Value 1 -Type DWord
