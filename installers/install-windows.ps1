@@ -154,12 +154,14 @@ try {
 
     $shell = New-Object -ComObject WScript.Shell
     $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
+    $icon = Join-Path $AppDir 'assets\ani-tui.ico'
     foreach ($dir in @([Environment]::GetFolderPath('Desktop'), $startMenu)) {
         $lnk = $shell.CreateShortcut((Join-Path $dir 'ani-tui.lnk'))
         $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\cmd.exe'
         $lnk.Arguments = "/c `"$launcher`""
         $lnk.WorkingDirectory = $env:USERPROFILE
         $lnk.Description = 'Search and watch anime'
+        if (Test-Path $icon) { $lnk.IconLocation = "$icon,0" }
         $lnk.Save()
     }
     # Run the uninstall script with PowerShell directly, not through the .cmd file: the
@@ -185,6 +187,7 @@ try {
         InstallLocation = $InstallDir
         UninstallString = "`"$powershell`" $uninstallArgs"
     }
+    if (Test-Path $icon) { $entries.DisplayIcon = $icon }
     foreach ($k in $entries.Keys) { Set-ItemProperty -Path $UninstallKey -Name $k -Value $entries[$k] }
     Set-ItemProperty -Path $UninstallKey -Name NoModify -Value 1 -Type DWord
     Set-ItemProperty -Path $UninstallKey -Name NoRepair -Value 1 -Type DWord

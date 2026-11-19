@@ -104,3 +104,5 @@ the live site.
 ## License
 
 GPL-3.0, same as upstream. See [LICENSE](LICENSE).
+
+The Windows icon (`assets/ani-tui.ico`) is fan art of Ryo Yamada from *Bocchi the Rock!*, made from a Discord emoji. It is not covered by the GPL and belongs to its respective owners.

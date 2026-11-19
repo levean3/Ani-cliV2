@@ -275,3 +275,21 @@ fine. `Uninstall from Windows.cmd` stays for the downloaded folder, which isn't 
 **Consequences:** Uninstalling from Settings > Apps now exits cleanly with code 0. The
 list of programs the installer added is deleted with the app, so after an uninstall that
 keeps Node.js, a reinstall treats Node.js as the user's own and won't offer to remove it.
+
+## 014. Ryo app icon for the Windows shortcuts
+
+- **Date:** 2026-11-19
+- **Status:** Accepted
+
+**Context:** The Windows shortcuts used the default `cmd.exe` icon.
+
+**Decision:** Use the maintainer's chosen Ryo image (a Discord emoji, 128x128 with
+transparency, the largest size Discord serves) as `assets/ani-tui.ico`, with 16, 24, 32,
+48, 64 and 128 px versions. Entries are stored as classic 32-bit bitmaps with alpha,
+not PNG: Windows' older icon code (System.Drawing, for example) misreads PNG entries
+smaller than 256 px. The installer sets it on the Desktop and Start menu shortcuts and as
+the Settings > Apps icon.
+
+**Consequences:** No 256 px version exists, so Windows' largest icon views upscale the
+128 px image slightly. The image is fan art of a character from someone else's series,
+now redistributed in a public repo; replace it if anyone asks.
